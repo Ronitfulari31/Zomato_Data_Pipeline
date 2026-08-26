@@ -121,7 +121,6 @@ SAMPLE_N=5
 
 ```
 
-> Do not commit real credentials to GitHub.
 
 ---
 
