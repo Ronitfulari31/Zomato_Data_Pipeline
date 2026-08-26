@@ -9,6 +9,7 @@ zomato/profiles.yml
 
 # Raw data (too large for GitHub)
 data/
+data_set/
 
 # Logs
 logs/
