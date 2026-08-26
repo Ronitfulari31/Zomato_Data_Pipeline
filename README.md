@@ -109,14 +109,6 @@ This pipeline turns raw operational records into trusted, business-ready analyti
 
 ![Medallion Architecture](docs/Medallion_architecture.png)
 
-```mermaid
-flowchart LR
-    RAW[Raw Layer] --> STG[Staging Layer]
-    STG --> MART[Marts / Facts / Dimensions]
-    MART --> AI[AI / Enrichment / RAG / Text-to-SQL]
-    AI --> BI[Business Intelligence]
-```
-
 The project follows a medallion architecture to keep the data pipeline clean and scalable:
 
 - Raw layer: ingests source files and stores them in a raw landing zone.
@@ -141,21 +133,6 @@ This data model explains how the system works at the business level:
 - a review is associated with a user, restaurant, and order
 
 This structure supports both operational analytics and customer-experience analysis.
-
-```mermaid
-erDiagram
-    USERS ||--o{ ORDERS : places
-    RESTAURANTS ||--o{ ORDERS : serves
-    ORDERS ||--o{ ORDER_ITEMS : contains
-    FOOD ||--o{ ORDER_ITEMS : includes
-    RESTAURANTS ||--o{ MENU : has
-    FOOD ||--o{ MENU : mapped_in
-    USERS ||--o{ REVIEWS : writes
-    RESTAURANTS ||--o{ REVIEWS : receives
-    ORDERS ||--o{ REVIEWS : has
-```
-
----
 
 ## 4. Snowflake setup and connection flow
 
