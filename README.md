@@ -280,16 +280,9 @@ dbt build --exclude tag:ai
 
 The orchestration layer is implemented with Apache Airflow, and the DAG is defined in [airflow/dags/zomato_batch.py](airflow/dags/zomato_batch.py).
 
-![Airflow Orchestration](docs/orchestration_airflow.png)
-
 ### Airflow flow
 
-```mermaid
-graph TD
-    A[reload_raw] --> B[dbt_build_core]
-    B --> C[enrich_reviews]
-    C --> D[dbt_build_ai]
-```
+![Airflow Orchestration](docs/orchestration_airflow.png)
 
 ### Start Airflow locally
 
