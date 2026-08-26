@@ -1,7 +1,7 @@
 from datetime import datetime
 from airflow import DAG
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.providers.standard.operators.bash import BashOperator      # Airflow 3 import
+from airflow.providers.standard.operators.bash import BashOperator
 
 DBT = "/opt/airflow/dbt_venv/bin/dbt"
 DBT_PROJECT = "/opt/airflow/dbt/zomato"
