@@ -1,163 +1,59 @@
-# Zomato AI Data Engineering End-to-End Project
+# Zomato AI Data Engineering — End-to-End Project
 
-A full-stack, cloud-native data engineering project that ingests Zomato-style food delivery data from raw CSVs, loads it into Snowflake, transforms it with dbt, orchestrates the pipeline with Airflow, and adds AI-powered analytics on top of the warehouse.
+A complete batch data pipeline that takes Zomato-style food delivery data from raw CSVs all the way to AI-powered analytics.
 
-The project demonstrates a realistic medallion architecture:
+Zomato/Food Delivery Dataset → Amazon S3 → Snowflake → dbt → Airflow → AI (OpenAI)
 
-Zomato dataset → Amazon S3 → Snowflake Raw → dbt staging + marts → Airflow orchestration → AI review enrichment + RAG + text-to-SQL
+The dataset lands in an S3 data lake and flows into Snowflake through a storage integration, where dbt transforms it through medallion layers — RAW (Bronze) tables loaded via COPY INTO, cleaned STAGING (Silver) views, and business-ready MARTS (Gold) with dimensions, incremental facts, and aggregate marts. Apache Airflow orchestrates the whole pipeline as one daily DAG. On top of the warehouse sits an AI lane powered by OpenAI: LLM enrichment turns free-text reviews into structured, queryable columns; RAG lets you chat with your reviews; and text-to-SQL lets you query the warehouse in plain English. Streamlit serves the dashboards and AI apps.
 
 ![Architecture](docs/architecture.png)
 
-This architecture shows how a business dataset evolves from raw operational records into trusted analytics and AI-ready insights. Raw CSVs are ingested into cloud storage, loaded into Snowflake, transformed using dbt, automated with Airflow, and then exposed to intelligent business queries.
+> 📂 Dataset + project slides: [Google Drive folder](https://drive.google.com/drive/folders/1_xcTtGbuZYmWUAdXz8YB4qjainPr6D6V?usp=sharing) — the raw CSVs are kept outside the repo because they are too large to commit to GitHub.
 
-## Project at a glance
+---
 
-This project is designed to show end-to-end ownership of a data platform, not just isolated scripts or notebooks. It covers the full lifecycle of a real business dataset:
+## What gets built
 
-- ingest raw operational data from CSV sources
-- land it in cloud storage and warehouse layers
-- apply transformation logic with dbt for trusted analytics
-- automate workflows with Airflow for repeatable execution
-- turn business data into action using AI-powered review analysis and natural-language querying
-
-### Why this matters in a real business context
-
-- helps restaurant chains and food delivery platforms understand performance by city, restaurant, and cuisine
-- identifies customer pain points from reviews and delivery experience data
-- supports faster decision-making using curated marts and KPI-focused models
-- demonstrates how modern AI can sit on top of a reliable warehouse instead of replacing it
-
-## Why this project
-
-This repository is designed to show how a production-style data pipeline can be built end to end with:
-
-- raw batch data ingestion
-- cloud data lake integration with S3 and Snowflake
-- transformation logic using dbt
-- incremental warehouse modeling
-- orchestrated batch pipelines with Airflow
-- LLM-based enrichment and analytics on top of the warehouse
-
-It is useful for learning modern data engineering patterns and for building a strong portfolio project.
+| Layer | Where | What |
+| --- | --- | --- |
+| Source | local/raw data source | restaurant, user, food, menu, order, order_item, and review data |
+| Lake | Amazon S3 | one bucket with raw folder structure per table |
+| Bronze | Snowflake RAW | COPY INTO from S3 through storage integration |
+| Silver | Snowflake STAGING | dbt staging views for cleaning, typing, and standardization |
+| Gold | Snowflake MARTS | dimensions, incremental facts, aggregate marts, KPI tables |
+| AI | Snowflake AI | review enrichment, RAG, text-to-SQL |
+| Orchestration | Airflow (Docker) | daily DAG for load → transform → enrich → AI mart |
 
 ---
 
 ## Tech stack
 
-- Python
-- Pandas
-- Amazon S3
-- Snowflake
-- dbt (dbt-snowflake)
-- Apache Airflow 3
-- OpenAI API
-- Streamlit
-
----
-
-## Project overview
-
-The repository includes a Zomato-style dataset in [data_set](data_set) with seven source CSV files: restaurants, users, food, menu, orders, order items, and customer reviews. The full dataset is also available in the Google Drive folder linked below, which is useful if you want to download the complete raw files locally for ingestion and testing.
-
-### Dataset download
-
-- Google Drive dataset link: https://drive.google.com/drive/folders/1_xcTtGbuZYmWUAdXz8YB4qjainPr6D6V?usp=sharing
-
-### Included source files
-
-- [data_set/restaurant.csv](data_set/restaurant.csv)
-- [data_set/users.csv](data_set/users.csv)
-- [data_set/food.csv](data_set/food.csv)
-- [data_set/menu.csv](data_set/menu.csv)
-- [data_set/orders.csv](data_set/orders.csv)
-- [data_set/order_items.csv](data_set/order_items.csv)
-- [data_set/reviews.csv](data_set/reviews.csv)
-
-### Data dictionary
-
-| Table | Purpose | Key fields |
-| --- | --- | --- |
-| restaurant | restaurant master data | restaurant id, city, cuisine, rating, address |
-| users | customer profile data | user id, name, age, occupation, income |
-| food | menu item catalog | food id, item name, veg/non-veg |
-| menu | item-to-restaurant mapping and pricing | menu id, restaurant id, food id, price |
-| orders | transactional order header data | order id, user id, city, subtotal, payment method, status |
-| order_items | order line item details | order item id, order id, food id, price, quantity |
-| reviews | customer feedback data | review id, order id, rating, comment, review date |
-
-### Data flow
-
-1. Source CSVs are loaded into S3 under a raw folder structure.
-2. Snowflake uses a storage integration and IAM trust policy to access the bucket.
-3. Raw data is copied into Snowflake using COPY INTO commands.
-4. dbt builds staging views and business-ready mart tables.
-5. Airflow orchestrates the batch flow daily.
-6. AI scripts enrich reviews and power question answering over reviews and warehouse data.
-
----
-
-## Architecture
-
-### High-level pipeline
-
-```text
-Source CSVs
-   ↓
-Amazon S3 (raw/<table>/)
-   ↓
-Snowflake RAW schema
-   ↓
-dbt staging models
-   ↓
-dbt gold marts + incremental facts
-   ↓
-Airflow DAG: reload_raw → dbt_build_core → enrich_reviews → dbt_build_ai
-   ↓
-AI analytics layer
-   - review enrichment
-   - RAG on reviews
-   - text-to-SQL on warehouse
-```
-
-### Medallion design
-
-- Raw: copied directly from S3 into Snowflake tables
-- Staging: cleaned, typed, and conformed source data
-- Marts: business-ready transformed datasets and KPIs
-- AI: enrichment and semantic query layers built on top of the warehouse
+Python · Pandas · Amazon S3 · Snowflake · dbt (dbt-snowflake) · Apache Airflow 3 (Docker) · OpenAI (gpt-4o-mini, text-embedding-3-small) · Streamlit
 
 ---
 
 ## Repository structure
 
 ```text
-.
 ├── ai/
 │   ├── enrich_reviews.py
 │   ├── example.env
 │   ├── rag_chat.py
 │   └── text_to_sql.py
 ├── airflow/
-│   ├── dags/
-│   │   └── zomato_batch.py
 │   ├── Dockerfile
 │   ├── docker-compose.yaml
-│   └── example.env
+│   ├── example.env
+│   └── dags/
+│       └── zomato_batch.py
 ├── aws/
 │   └── iam/
 │       ├── s3-read-policy.json
 │       ├── snowflake-role-trust-policy-final.json
 │       └── snowflake-role-trust-policy-initial.json
-├── data_set/
-│   ├── food.csv
-│   ├── menu.csv
-│   ├── order_items.csv
-│   ├── orders.csv
-│   ├── restaurant.csv
-│   ├── reviews.csv
-│   └── users.csv
 ├── docs/
-│   └── architecture.png
+│   ├── architecture.png
+│   └── Zomato_Data_Model.jpg
 ├── snowflake/
 │   ├── 01_setup.sql
 │   ├── 02_storage_integration.sql
@@ -165,278 +61,426 @@ AI analytics layer
 │   ├── 04_raw_tables.sql
 │   └── 05_copy_into.sql
 ├── zomato/
-│   ├── macros/
-│   │   └── generate_schema_name.sql
-│   ├── models/
-│   │   ├── marts/
-│   │   └── staging/
 │   ├── README.md
 │   ├── analyses/
 │   ├── dbt_project.yml
+│   ├── macros/
+│   ├── models/
 │   ├── snapshots/
 │   └── tests/
 ├── .gitignore
 ├── README.md
-└── LICENSE
+├── LICENSE
+└── .venv/
 ```
 
-> The source CSV dataset is included in the repository under [data_set](data_set), and the full raw dataset can also be downloaded from the Google Drive link above for local ingestion and testing.
+> The raw data files are intentionally not committed to GitHub because they are too large. Download them from the Drive link above and place them in your local raw-data location before running the pipeline.
 
 ---
 
-## Data model
+## 1. Project flow overview
 
-The project works with seven core source datasets included in [data_set](data_set):
+The complete flow of the solution is shown below.
 
-- restaurants (`restaurant.csv`)
-- users (`users.csv`)
-- food (`food.csv`)
-- menu (`menu.csv`)
-- orders (`orders.csv`)
-- order_items (`order_items.csv`)
-- reviews (`reviews.csv`)
+![Architecture](docs/architecture.png)
 
-These files include restaurant metadata, user profiles, menu and food item attributes, order transactions, line-item details, and customer feedback, which support analytical questions such as:
+This pipeline moves from raw source data to trusted analytics and AI-driven insights in a sequence that reflects a production data platform:
 
-- revenue and order trends by city
-- restaurant performance
-- delivery SLA analysis
-- customer sentiment and review insights
-- payment and fulfilment behavior
-
-### Data model view
-
-![Data Model](docs/Zomato_Data_Model.jpg)
-
-This data model captures the operational reality of a food delivery business: customers place orders, restaurants fulfil those orders, menu items define the catalog, and reviews provide customer feedback at the transaction level. Structuring the data this way enables both operational analytics and AI-driven insight generation.
-
-This data model represents the core business relationships in the platform:
-
-- a user places many orders
-- each order belongs to a restaurant and a city
-- each order contains multiple order items
-- each menu item is mapped to a restaurant and food catalog entry
-- each review is linked to a user, restaurant, and order
-
-This structure enables both transactional analysis and customer-experience analysis across the full delivery lifecycle.
+1. Raw datasets are collected from source files.
+2. Data is staged into cloud storage and loaded into Snowflake.
+3. dbt cleans, models, and transforms the data into analytical layers.
+4. Airflow orchestrates scheduled and repeatable execution.
+5. AI scripts enrich customer reviews and answer business questions using the warehouse.
+6. Analysts and users consume trusted KPIs through marts and AI workflows.
 
 ---
 
-## dbt layer
+## 2. How the pipeline works
 
-The dbt project under [zomato](zomato) includes staging and mart models that perform the transformation and business logic.
+### 1 · Data lands in S3
 
-### Main concepts
+The source datasets are uploaded to S3 under a raw folder structure such as:
 
-- staging: clean and standardize raw source data
-- dimensions: customers, restaurants, food, date dimension
-- facts: order and order-item fact tables
-- marts: aggregate and KPI-focused outputs like city revenue and SLA metrics
-- tests: schema, uniqueness, null, relationships, and accepted values checks
+```text
+s3://<BUCKET>/raw/<table>/
+```
 
-The warehouse is organized around Snowflake schemas such as:
+This keeps the raw data in a central storage layer before warehouse ingestion.
 
-- RAW
-- STAGING
-- MARTS
-- SNAPSHOTS
-- AI
+### 2 · S3 to Snowflake via keyless integration
 
----
+Snowflake reads the bucket using a storage integration and IAM role, without storing long-lived AWS keys in the repo. The AWS JSON files under [aws/iam](aws/iam) are used to configure the trust relationship between the IAM role and Snowflake.
 
-## AI layer
+The flow is:
 
-This project adds an AI layer on top of the warehouse with three capabilities:
+1. create AWS policy and role
+2. create Snowflake storage integration
+3. run DESC INTEGRATION to capture the identity values
+4. update the role trust policy with Snowflake's IAM user ARN and external ID
 
-### 1. Review enrichment
+### 3 · Load with COPY INTO
 
-The script [ai/enrich_reviews.py](ai/enrich_reviews.py) reads raw reviews, sends them to OpenAI using `gpt-4o-mini`, and writes structured outputs such as:
+The DDL scripts in [snowflake/04_raw_tables.sql](snowflake/04_raw_tables.sql) create the raw tables, and [snowflake/05_copy_into.sql](snowflake/05_copy_into.sql) loads the data from S3 into Snowflake using COPY INTO.
 
-- sentiment label
-- sentiment score
-- topic
-- key issue
+This is where the raw bronze layer is created.
 
-These enriched reviews are loaded into `ZOMATO.AI.REVIEW_ENRICHED` and used downstream in analytics.
+### 4 · Transform with dbt (medallion)
 
-### 2. RAG over reviews
+The project uses a medallion design:
 
-The script [ai/rag_chat.py](ai/rag_chat.py) embeds review text and allows users to ask natural-language questions like:
+- Raw / Bronze: incoming raw sources in Snowflake
+- Staging / Silver: standardized and cleaned source models
+- Marts / Gold: dimensions, insights, and business-ready aggregates
 
-- What are customers complaining about most?
-- Which cities have the biggest delivery issues?
-- Are people happy with food quality or pricing?
+The dbt project under [zomato](zomato) creates staging models, dimensions, fact tables, and marts used for analytics.
 
-### 3. Text-to-SQL over the warehouse
+### 5 · Orchestrate with Airflow
 
-The script [ai/text_to_sql.py](ai/text_to_sql.py) asks the LLM to translate plain-English questions into safe Snowflake SELECT queries and runs those queries against the marts layer.
-
----
-
-## Airflow orchestration
-
-The DAG in [airflow/dags/zomato_batch.py](airflow/dags/zomato_batch.py) orchestrates the batch flow:
+The DAG in [airflow/dags/zomato_batch.py](airflow/dags/zomato_batch.py) manages the workflow:
 
 ```text
 reload_raw → dbt_build_core → enrich_reviews → dbt_build_ai
 ```
 
-This means the system executes the following steps in order:
+This keeps the loading, transformation, enrichment, and AI steps in one scheduled workflow.
 
-1. load raw data from S3 into Snowflake
-2. run dbt core model builds and tests
-3. run LLM enrichment on reviews
-4. build the AI-related dbt models
+### 6 · AI on top of the warehouse
 
-The Airflow setup uses Docker and injects Snowflake and OpenAI values through environment variables.
+The AI layer adds three capabilities:
 
----
+- review enrichment using OpenAI
+- RAG over review content
+- text-to-SQL over warehouse tables
 
-## Prerequisites
-
-Before running this project, make sure you have:
-
-- AWS account with S3 access
-- Snowflake account and admin access to create warehouse/database/schema/role
-- OpenAI API key
-- Docker and Docker Compose installed
-- Python 3.10+
-- dbt installed or accessible through the Airflow image
+This turns the warehouse into an operational decision-support platform instead of a static reporting store.
 
 ---
 
-## Snowflake setup
+## 3. Business use case
 
-Use the scripts in the [snowflake](snowflake) folder in order:
+This project simulates a real food delivery analytics platform for a business that needs to answer questions like:
 
-1. [snowflake/01_setup.sql](snowflake/01_setup.sql) – create warehouse, database, schemas, and role
-2. [snowflake/02_storage_integration.sql](snowflake/02_storage_integration.sql) – create storage integration for S3 access
-3. [snowflake/03_stage_and_formats.sql](snowflake/03_stage_and_formats.sql) – create external stage and file format
-4. [snowflake/04_raw_tables.sql](snowflake/04_raw_tables.sql) – create raw tables
-5. [snowflake/05_copy_into.sql](snowflake/05_copy_into.sql) – copy data from S3 stage into Snowflake
+- Which cities generate the most revenue?
+- Which restaurants perform best by rating and delivery time?
+- What are the main delivery issues reported by customers?
+- Which food items or cuisines are most popular?
+- How can AI interpret review sentiment and improve business decisions?
 
-For AWS, use the IAM policy and trust policy JSON files in [aws/iam](aws/iam) to connect Snowflake with S3 using a keyless integration.
+The system helps connect raw operational data to business insight and action.
 
 ---
 
-## Environment variables
+## 4. Medallion architecture
 
-Create environment files based on the examples in:
+```mermaid
+flowchart LR
+    RAW[Raw Layer] --> STG[Staging Layer]
+    STG --> MART[Marts / Facts / Dimensions]
+    MART --> AI[AI / Enrichment / RAG / Text-to-SQL]
+    AI --> BI[Business Intelligence]
+```
 
-- [airflow/example.env](airflow/example.env)
-- [ai/example.env](ai/example.env)
+The project follows a medallion architecture to keep the data pipeline clean and scalable:
 
-Typical variables include:
+- Raw layer: ingests source files and stores them in a raw landing zone.
+- Staging layer: standardizes column names, cleans values, and prepares the data for modeling.
+- Mart layer: creates business-ready tables used for analysis and reporting.
+- AI layer: enriches review content and answers natural-language business questions.
+
+---
+
+## 5. Data model and schema design
+
+The project models the relationships between the core business entities in the food delivery domain.
+
+![Data Model](docs/Zomato_Data_Model.jpg)
+
+This data model explains how the system works at the business level:
+
+- a user places many orders
+- an order belongs to a restaurant and a city
+- an order contains multiple order items
+- a menu item links to a food catalog item and restaurant pricing
+- a review is associated with a user, restaurant, and order
+
+This structure supports both operational analytics and customer-experience analysis.
+
+```mermaid
+erDiagram
+    USERS ||--o{ ORDERS : places
+    RESTAURANTS ||--o{ ORDERS : serves
+    ORDERS ||--o{ ORDER_ITEMS : contains
+    FOOD ||--o{ ORDER_ITEMS : includes
+    RESTAURANTS ||--o{ MENU : has
+    FOOD ||--o{ MENU : mapped_in
+    USERS ||--o{ REVIEWS : writes
+    RESTAURANTS ||--o{ REVIEWS : receives
+    ORDERS ||--o{ REVIEWS : has
+```
+
+---
+
+## 6. Snowflake setup and connection flow
+
+The warehouse layer is implemented in Snowflake. The setup is done in sequence using the scripts in the [snowflake](snowflake) folder.
+
+### Setup scripts order
+
+1. [snowflake/01_setup.sql](snowflake/01_setup.sql) - create warehouse, database, schemas, and role
+2. [snowflake/02_storage_integration.sql](snowflake/02_storage_integration.sql) - create storage integration for S3 access
+3. [snowflake/03_stage_and_formats.sql](snowflake/03_stage_and_formats.sql) - create stage and file formats
+4. [snowflake/04_raw_tables.sql](snowflake/04_raw_tables.sql) - create raw tables
+5. [snowflake/05_copy_into.sql](snowflake/05_copy_into.sql) - copy data from S3 into Snowflake
+
+### Example environment variables
+
+Create your environment file from [ai/example.env](ai/example.env) and [airflow/example.env](airflow/example.env) with values like:
 
 ```bash
-SNOWFLAKE_ACCOUNT=
-SNOWFLAKE_USER=
-SNOWFLAKE_PASSWORD=
-SNOWFLAKE_WAREHOUSE=
-SNOWFLAKE_DATABASE=
-SNOWFLAKE_SCHEMA=
-OPENAI_API_KEY=
+SNOWFLAKE_ACCOUNT=your_account_identifier
+SNOWFLAKE_USER=your_user_name
+SNOWFLAKE_PASSWORD=your_password
+SNOWFLAKE_WAREHOUSE=ZOMATO_WH
+SNOWFLAKE_DATABASE=ZOMATO
+SNOWFLAKE_SCHEMA=STAGING
+OPENAI_API_KEY=your_openai_key
 SAMPLE_N=5
 ```
 
+> Do not commit real credentials to GitHub.
+
 ---
 
-## Run locally
+## 7. dbt setup and staging layer
 
-### 1. Configure Snowflake and AWS
+The analytics layer is built with dbt. The setup process is important because it creates the base project that connects to Snowflake and builds the transformation pipeline.
 
-Run the SQL setup scripts in Snowsight, and configure the S3 storage integration with the IAM trust policy.
-
-### 2. Run dbt
+### Install dbt for Snowflake
 
 ```bash
-cd zomato
-export SNOWFLAKE_ACCOUNT=...
-export SNOWFLAKE_USER=...
-export SNOWFLAKE_PASSWORD=...
+pip install dbt-snowflake
+```
 
+### Initialize a dbt project
+
+```bash
+dbt init project_name
+```
+
+When prompted, select the required option:
+
+- choose database type: Snowflake
+- select option 1 for Snowflake
+
+Example answers:
+
+```text
+Which database would you like to use?
+1. snowflake
+
+Enter your account identifier:
+<from Snowflake -> Profile -> Connect -> Account Identifier>
+
+Enter your user name:
+<from Snowflake Profile -> Connect tool -> dev username>
+
+Enter your password:
+<your Snowflake password or SSO/keypair-based auth>
+
+Enter your role:
+DBT_ROLE
+
+Enter your warehouse:
+ZOMATO_WH
+
+Enter your database:
+ZOMATO
+
+Enter your schema:
+STAGING
+
+Enter number of threads:
+8
+```
+
+### Validate connection
+
+```bash
+cd project_name
 dbt debug
+```
 
+### Staging layer setup
+
+The staging layer is where raw tables are cleaned and normalized. In this project, [zomato/models/staging](zomato/models/staging) contains the staging models such as:
+
+- stg_orders.sql
+- stg_order_items.sql
+- stg_restaurants.sql
+- stg_reviews.sql
+- stg_users.sql
+- stg_food.sql
+- stg_menu.sql
+
+Typical tasks include:
+
+- naming normalization
+- type casting
+- null handling
+- deduplication
+- column mapping
+- business standardization
+
+### Build the project
+
+```bash
 dbt build --exclude tag:ai
 ```
 
-### 3. Start Airflow
+---
+
+## 8. Airflow orchestration
+
+The orchestration layer is implemented with Apache Airflow, and the DAG is defined in [airflow/dags/zomato_batch.py](airflow/dags/zomato_batch.py).
+
+### Airflow flow
+
+```mermaid
+graph TD
+    A[reload_raw] --> B[dbt_build_core]
+    B --> C[enrich_reviews]
+    C --> D[dbt_build_ai]
+```
+
+### Start Airflow locally
 
 ```bash
 cd airflow
 cp example.env .env
-
 docker compose build
 docker compose up -d
 ```
 
 Then open:
 
-- http://localhost:8080
+```text
+http://localhost:8080
+```
 
-Log in with the Airflow user created in Docker setup, unpause the DAG, and trigger it.
+Unpause the DAG and trigger it when ready.
 
-### 4. Run AI apps
+---
+
+## 9. AI layer and business intelligence
+
+The AI layer sits on top of the warehouse and adds intelligence to the analytical data.
+
+### 1. Review enrichment
+
+The script [ai/enrich_reviews.py](ai/enrich_reviews.py) sends review text to OpenAI and produces fields like:
+
+- sentiment label
+- sentiment score
+- topic
+- key issue
+
+### 2. RAG over reviews
+
+The script [ai/rag_chat.py](ai/rag_chat.py) enables natural-language questions over review data.
+
+### 3. Text-to-SQL over warehouse
+
+The script [ai/text_to_sql.py](ai/text_to_sql.py) translates plain-English questions into safe SQL and queries the Snowflake marts layer.
+
+---
+
+## 10. Running it
 
 ```bash
-export OPENAI_API_KEY=sk-...
+# 1. Create or update Snowflake objects
+# run SQL files in order from snowflake/
 
+# 2. Install dbt package
+pip install dbt-snowflake
+
+# 3. Initialize dbt project
+dbt init project_name
+
+# 4. Validate dbt connection
+cd project_name
+dbt debug
+
+# 5. Build models
+dbt build --exclude tag:ai
+
+# 6. Start Airflow
+cd airflow
+cp example.env .env
+docker compose up -d
+
+# 7. Run AI enrichment
+export OPENAI_API_KEY=your_key
 python ai/enrich_reviews.py
+
+# 8. Run AI apps
 streamlit run ai/rag_chat.py
 streamlit run ai/text_to_sql.py
 ```
 
 ---
 
-## Presentation/demo storyline
+## 11. Example analytical questions supported by the project
 
-A strong way to present this project in an interview or portfolio review is to frame it as a business problem with a technical solution:
-
-1. The business has raw transaction and review data spread across multiple datasets.
-2. We ingest and standardize that data into a warehouse using cloud storage and Snowflake.
-3. We build clean, reusable data models with dbt so analysts and AI systems can trust the metrics.
-4. We automate the workflow with Airflow so data refreshes are repeatable and production-like.
-5. We add AI to convert customer sentiment into operational insight and natural-language analytics.
-
-### Example business questions supported by the AI layer
-
-- Which cities have the highest GMV?
-- What are the most common delivery complaints?
-- Which restaurants have the highest cancellation rate?
-- What is the average delivery time by city?
-- Show restaurants with the best customer ratings
-- Which cuisines or restaurants have strong sentiment but weak delivery performance?
-
-### Business value summary
-
-This project proves that you can work across the full data stack and think beyond coding:
-
-- data engineering: ingestion, storage, pipeline orchestration
-- analytics engineering: transformation, modeling, testing, KPI design
-- AI engineering: review enrichment, semantic search, text-to-SQL
-- business understanding: operational and customer experience analysis
+- Which city has the highest revenue?
+- Which restaurants have the highest ratings?
+- Which cuisines are most popular?
+- What are the top delivery complaints?
+- Which restaurants have the worst delivery SLA?
+- Which customers are most engaged by reviews and order value?
 
 ---
 
-## Notes and best practices
+## 12. Why this project is valuable
 
-- Never store credentials in code or Git.
-- Update the IAM trust policy after retrieving Snowflake external IDs via `DESC INTEGRATION`.
-- Keep the raw S3 folder structure aligned with the copy commands.
-- Use dbt tests to validate model quality before promoting data.
-- Be careful with AI usage costs: scripts support sample-limited review enrichment.
+This project demonstrates a complete modern data engineering workflow:
+
+- ingestion and storage
+- warehouse architecture
+- transformation with dbt
+- orchestration with Airflow
+- AI enrichment on trusted data
+- analytical and natural-language business intelligence
+
+It also shows that the developer understands both the technical stack and the business problem behind the data.
 
 ---
 
-## Future enhancements
+## 13. Future enhancements
 
-Potential next steps for this project include:
+Potential next improvements include:
 
-- adding a dashboard layer with Streamlit or Metabase
-- moving the AI logic into a serverless or API-based service
-- adding data quality monitoring and alerting
-- automating deployment via CI/CD
-- scaling the warehouse and ingestion pipeline for larger datasets
+- dashboarding with Streamlit or Metabase
+- data quality monitoring and alerts
+- incremental dbt logic for large datasets
+- CI/CD for dbt and SQL validation
+- real-time or event-driven ingestion
+- advanced AI summarization and sentiment trend analysis
+
+---
+
+## 14. Final note
+
+This repository is best understood as a modern data platform end-to-end project where the goal is not only to move data but to create a reliable, understandable, and AI-enabled business intelligence system.
+
+The complete value comes from combining:
+
+- warehouse design
+- dbt transformation
+- orchestration automation
+- AI enrichment
+- business insight generation
+
+That combination is what makes this project strong for learning, demos, and portfolio presentation.
 
 ---
 
