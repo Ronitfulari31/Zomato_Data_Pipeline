@@ -8,6 +8,8 @@ Zomato dataset → Amazon S3 → Snowflake Raw → dbt staging + marts → Airfl
 
 ![Architecture](docs/architecture.png)
 
+This architecture shows how a business dataset evolves from raw operational records into trusted analytics and AI-ready insights. Raw CSVs are ingested into cloud storage, loaded into Snowflake, transformed using dbt, automated with Airflow, and then exposed to intelligent business queries.
+
 ## Project at a glance
 
 This project is designed to show end-to-end ownership of a data platform, not just isolated scripts or notebooks. It covers the full lifecycle of a real business dataset:
@@ -201,6 +203,22 @@ These files include restaurant metadata, user profiles, menu and food item attri
 - delivery SLA analysis
 - customer sentiment and review insights
 - payment and fulfilment behavior
+
+### Data model view
+
+![Data Model](docs/Zomato_Data_Model.jpg)
+
+This data model captures the operational reality of a food delivery business: customers place orders, restaurants fulfil those orders, menu items define the catalog, and reviews provide customer feedback at the transaction level. Structuring the data this way enables both operational analytics and AI-driven insight generation.
+
+This data model represents the core business relationships in the platform:
+
+- a user places many orders
+- each order belongs to a restaurant and a city
+- each order contains multiple order items
+- each menu item is mapped to a restaurant and food catalog entry
+- each review is linked to a user, restaurant, and order
+
+This structure enables both transactional analysis and customer-experience analysis across the full delivery lifecycle.
 
 ---
 
