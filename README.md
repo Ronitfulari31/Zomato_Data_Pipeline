@@ -38,7 +38,17 @@ It is useful for learning modern data engineering patterns and for building a st
 
 ## Project overview
 
-The pipeline ingests seven CSV datasets representing restaurants, users, food items, menu items, orders, order items, and customer reviews. The data is staged in S3, copied into Snowflake through a storage integration, transformed with dbt into staging and mart layers, and finally exposed to AI workflows.
+The repository includes a Zomato-style dataset in [data_set](data_set) with seven source CSV files: restaurants, users, food, menu, orders, order items, and customer reviews. The data is staged in S3, copied into Snowflake through a storage integration, transformed with dbt into staging and mart layers, and finally exposed to AI workflows.
+
+### Included source files
+
+- [data_set/restaurant.csv](data_set/restaurant.csv)
+- [data_set/users.csv](data_set/users.csv)
+- [data_set/food.csv](data_set/food.csv)
+- [data_set/menu.csv](data_set/menu.csv)
+- [data_set/orders.csv](data_set/orders.csv)
+- [data_set/order_items.csv](data_set/order_items.csv)
+- [data_set/reviews.csv](data_set/reviews.csv)
 
 ### Data flow
 
@@ -103,6 +113,14 @@ AI analytics layer
 │       ├── s3-read-policy.json
 │       ├── snowflake-role-trust-policy-final.json
 │       └── snowflake-role-trust-policy-initial.json
+├── data_set/
+│   ├── food.csv
+│   ├── menu.csv
+│   ├── order_items.csv
+│   ├── orders.csv
+│   ├── restaurant.csv
+│   ├── reviews.csv
+│   └── users.csv
 ├── docs/
 │   └── architecture.png
 ├── snowflake/
@@ -127,23 +145,23 @@ AI analytics layer
 └── LICENSE
 ```
 
-> Note: the dataset, generated files, and dbt build artifacts are intentionally not committed in this repo.
+> The source CSV dataset is included in the repository under [data_set](data_set), and is used as the base input for the Snowflake + dbt pipeline.
 
 ---
 
 ## Data model
 
-The project works with seven core source datasets:
+The project works with seven core source datasets included in [data_set](data_set):
 
-- restaurants
-- users
-- food
-- menu
-- orders
-- order_items
-- reviews
+- restaurants (`restaurant.csv`)
+- users (`users.csv`)
+- food (`food.csv`)
+- menu (`menu.csv`)
+- orders (`orders.csv`)
+- order_items (`order_items.csv`)
+- reviews (`reviews.csv`)
 
-The order and review datasets are large and support analytical questions such as:
+These files include restaurant metadata, user profiles, menu and food item attributes, order transactions, line-item details, and customer feedback, which support analytical questions such as:
 
 - revenue and order trends by city
 - restaurant performance
