@@ -82,7 +82,7 @@ Python · Pandas · Amazon S3 · Snowflake · dbt (dbt-snowflake) · Apache Airf
 
 The complete flow of the solution is shown below.
 
-![Architecture](docs/architecture.png)
+![High-Level Pipeline](docs/high_level_pipeline.png)
 
 This pipeline moves from raw source data to trusted analytics and AI-driven insights in a sequence that reflects a production data platform:
 
@@ -171,6 +171,8 @@ The system helps connect raw operational data to business insight and action.
 ---
 
 ## 4. Medallion architecture
+
+![Medallion Architecture](docs/Medallion_architecture.png)
 
 ```mermaid
 flowchart LR
@@ -343,6 +345,8 @@ dbt build --exclude tag:ai
 
 The orchestration layer is implemented with Apache Airflow, and the DAG is defined in [airflow/dags/zomato_batch.py](airflow/dags/zomato_batch.py).
 
+![Airflow Orchestration](docs/orchestration_airflow.png)
+
 ### Airflow flow
 
 ```mermaid
@@ -481,12 +485,6 @@ The complete value comes from combining:
 - business insight generation
 
 That combination is what makes this project strong for learning, demos, and portfolio presentation.
-
----
-
-## License
-
-This project is intended for learning and portfolio use. Please check the repository license before using it in production or sharing commercially.
 
 ---
 
