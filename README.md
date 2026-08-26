@@ -78,99 +78,34 @@ Python · Pandas · Amazon S3 · Snowflake · dbt (dbt-snowflake) · Apache Airf
 
 ---
 
-## 1. Project flow overview
+## 1. End-to-end pipeline flow
 
-The complete flow of the solution is shown below.
+The project follows a clear production-style data pipeline from raw files to trusted analytics and AI-driven business insight.
 
 ![High-Level Pipeline](docs/high_level_pipeline.png)
 
-This pipeline moves from raw source data to trusted analytics and AI-driven insights in a sequence that reflects a production data platform:
+### Flow in one sequence
 
-1. Raw datasets are collected from source files.
-2. Data is staged into cloud storage and loaded into Snowflake.
-3. dbt cleans, models, and transforms the data into analytical layers.
-4. Airflow orchestrates scheduled and repeatable execution.
-5. AI scripts enrich customer reviews and answer business questions using the warehouse.
-6. Analysts and users consume trusted KPIs through marts and AI workflows.
+1. Source datasets are collected as CSVs for restaurants, users, food, menu, orders, order items, and reviews.
+2. The files are landed in Amazon S3 as raw data in a lake folder structure such as `s3://<BUCKET>/raw/<table>/`.
+3. Snowflake reads the raw files through a storage integration and loads them into the RAW schema using COPY INTO.
+4. dbt transforms the data in the staging and mart layers: cleaning, typing, deduplicating, standardizing, and building fact and dimension models.
+5. Apache Airflow orchestrates the end-to-end process in one DAG so the load, dbt transformation, and AI enrichment run in a controlled sequence.
+6. The AI layer enriches review text, enables RAG on reviews, and supports natural-language querying with text-to-SQL across the warehouse.
 
----
+This pipeline turns raw operational records into trusted, business-ready analytics and actionable insights.
 
-## 2. How the pipeline works
-
-### 1 · Data lands in S3
-
-The source datasets are uploaded to S3 under a raw folder structure such as:
-
-```text
-s3://<BUCKET>/raw/<table>/
-```
-
-This keeps the raw data in a central storage layer before warehouse ingestion.
-
-### 2 · S3 to Snowflake via keyless integration
-
-Snowflake reads the bucket using a storage integration and IAM role, without storing long-lived AWS keys in the repo. The AWS JSON files under [aws/iam](aws/iam) are used to configure the trust relationship between the IAM role and Snowflake.
-
-The flow is:
-
-1. create AWS policy and role
-2. create Snowflake storage integration
-3. run DESC INTEGRATION to capture the identity values
-4. update the role trust policy with Snowflake's IAM user ARN and external ID
-
-### 3 · Load with COPY INTO
-
-The DDL scripts in [snowflake/04_raw_tables.sql](snowflake/04_raw_tables.sql) create the raw tables, and [snowflake/05_copy_into.sql](snowflake/05_copy_into.sql) loads the data from S3 into Snowflake using COPY INTO.
-
-This is where the raw bronze layer is created.
-
-### 4 · Transform with dbt (medallion)
-
-The project uses a medallion design:
-
-- Raw / Bronze: incoming raw sources in Snowflake
-- Staging / Silver: standardized and cleaned source models
-- Marts / Gold: dimensions, insights, and business-ready aggregates
-
-The dbt project under [zomato](zomato) creates staging models, dimensions, fact tables, and marts used for analytics.
-
-### 5 · Orchestrate with Airflow
-
-The DAG in [airflow/dags/zomato_batch.py](airflow/dags/zomato_batch.py) manages the workflow:
-
-```text
-reload_raw → dbt_build_core → enrich_reviews → dbt_build_ai
-```
-
-This keeps the loading, transformation, enrichment, and AI steps in one scheduled workflow.
-
-### 6 · AI on top of the warehouse
-
-The AI layer adds three capabilities:
-
-- review enrichment using OpenAI
-- RAG over review content
-- text-to-SQL over warehouse tables
-
-This turns the warehouse into an operational decision-support platform instead of a static reporting store.
-
----
-
-## 3. Business use case
-
-This project simulates a real food delivery analytics platform for a business that needs to answer questions like:
+### Business questions this pipeline answers
 
 - Which cities generate the most revenue?
 - Which restaurants perform best by rating and delivery time?
-- What are the main delivery issues reported by customers?
+- What are the top delivery issues reported by customers?
 - Which food items or cuisines are most popular?
-- How can AI interpret review sentiment and improve business decisions?
-
-The system helps connect raw operational data to business insight and action.
+- How can AI help interpret sentiment and reveal insight from reviews?
 
 ---
 
-## 4. Medallion architecture
+## 2. Medallion architecture
 
 ![Medallion Architecture](docs/Medallion_architecture.png)
 
@@ -191,7 +126,7 @@ The project follows a medallion architecture to keep the data pipeline clean and
 
 ---
 
-## 5. Data model and schema design
+## 3. Data model and schema design
 
 The project models the relationships between the core business entities in the food delivery domain.
 
@@ -222,7 +157,7 @@ erDiagram
 
 ---
 
-## 6. Snowflake setup and connection flow
+## 4. Snowflake setup and connection flow
 
 The warehouse layer is implemented in Snowflake. The setup is done in sequence using the scripts in the [snowflake](snowflake) folder.
 
@@ -253,7 +188,7 @@ SAMPLE_N=5
 
 ---
 
-## 7. dbt setup and staging layer
+## 5. dbt setup and staging layer
 
 The analytics layer is built with dbt. The setup process is important because it creates the base project that connects to Snowflake and builds the transformation pipeline.
 
@@ -341,7 +276,7 @@ dbt build --exclude tag:ai
 
 ---
 
-## 8. Airflow orchestration
+## 6. Airflow orchestration
 
 The orchestration layer is implemented with Apache Airflow, and the DAG is defined in [airflow/dags/zomato_batch.py](airflow/dags/zomato_batch.py).
 
@@ -375,7 +310,7 @@ Unpause the DAG and trigger it when ready.
 
 ---
 
-## 9. AI layer and business intelligence
+## 7. AI layer and business intelligence
 
 The AI layer sits on top of the warehouse and adds intelligence to the analytical data.
 
@@ -399,7 +334,7 @@ The script [ai/text_to_sql.py](ai/text_to_sql.py) translates plain-English quest
 
 ---
 
-## 10. Running it
+## 8. Running it
 
 ```bash
 # 1. Create or update Snowflake objects
@@ -434,7 +369,7 @@ streamlit run ai/text_to_sql.py
 
 ---
 
-## 11. Example analytical questions supported by the project
+## 9. Example analytical questions supported by the project
 
 - Which city has the highest revenue?
 - Which restaurants have the highest ratings?
@@ -445,7 +380,7 @@ streamlit run ai/text_to_sql.py
 
 ---
 
-## 12. Why this project is valuable
+## 10. Why this project is valuable
 
 This project demonstrates a complete modern data engineering workflow:
 
@@ -460,7 +395,7 @@ It also shows that the developer understands both the technical stack and the bu
 
 ---
 
-## 13. Future enhancements
+## 11. Future enhancements
 
 Potential next improvements include:
 
@@ -473,7 +408,7 @@ Potential next improvements include:
 
 ---
 
-## 14. Final note
+## 12. Final note
 
 This repository is best understood as a modern data platform end-to-end project where the goal is not only to move data but to create a reliable, understandable, and AI-enabled business intelligence system.
 
