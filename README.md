@@ -2,6 +2,8 @@
 
 A complete batch data pipeline that takes Zomato-style food delivery data from raw CSVs all the way to AI-powered analytics.
 
+From raw data to AI analytics
+
 Zomato/Food Delivery Dataset → Amazon S3 → Snowflake → dbt → Airflow → AI (OpenAI)
 
 The dataset lands in an S3 data lake and flows into Snowflake through a storage integration, where dbt transforms it through medallion layers — RAW (Bronze) tables loaded via COPY INTO, cleaned STAGING (Silver) views, and business-ready MARTS (Gold) with dimensions, incremental facts, and aggregate marts. Apache Airflow orchestrates the whole pipeline as one daily DAG. On top of the warehouse sits an AI lane powered by OpenAI: LLM enrichment turns free-text reviews into structured, queryable columns; RAG lets you chat with your reviews; and text-to-SQL lets you query the warehouse in plain English. Streamlit serves the dashboards and AI apps.
@@ -14,163 +16,671 @@ The dataset lands in an S3 data lake and flows into Snowflake through a storage 
 
 ## What gets built
 
-| Layer | Where | What |
-| --- | --- | --- |
-| Source | local/raw data source | restaurant, user, food, menu, order, order_item, and review data |
-| Lake | Amazon S3 | one bucket with raw folder structure per table |
-| Bronze | Snowflake RAW | COPY INTO from S3 through storage integration |
-| Silver | Snowflake STAGING | dbt staging views for cleaning, typing, and standardization |
-| Gold | Snowflake MARTS | dimensions, incremental facts, aggregate marts, KPI tables |
-| AI | Snowflake AI | review enrichment, RAG, text-to-SQL |
-| Orchestration | Airflow (Docker) | daily DAG for load → transform → enrich → AI mart |
+### Pipeline Layers
 
----
+Layer
 
-## Tech stack
+Platform / Location
 
-Python · Pandas · Amazon S3 · Snowflake · dbt (dbt-snowflake) · Apache Airflow 3 (Docker) · OpenAI (gpt-4o-mini, text-embedding-3-small) · Streamlit
+Purpose / What It Contains
 
----
+Source
 
-## Repository structure
+Local raw data source
 
-```text
+Restaurant, user, food, menu, order, order-item, and review datasets
 
-├── ai/
+Data Lake
 
-│   ├── enrich_reviews.py
+Amazon S3
 
-│   ├── example.env
+Stores raw source files using a separate folder structure for each table
 
-│   ├── rag_chat.py
+Bronze
 
-│   └── text_to_sql.py
+Snowflake RAW
 
-├── airflow/
+Raw tables loaded from S3 using COPY INTO through Snowflake Storage Integration
 
-│   ├── Dockerfile
+Silver
 
-│   ├── docker-compose.yaml
+Snowflake STAGING
 
-│   ├── example.env
+dbt staging models for cleaning, type casting, deduplication, and standardization
 
-│   └── dags/
+Gold
 
-│       └── zomato_batch.py
+Snowflake MARTS
 
-├── aws/
+Business-ready dimensions, incremental facts, aggregate marts, and KPI tables
 
-│   └── iam/
+AI
 
-│       ├── s3-read-policy.json
+Snowflake AI / AI Layer
 
-│       ├── snowflake-role-trust-policy-final.json
+Review enrichment, RAG-based review analysis, and Text-to-SQL
 
-│       └── snowflake-role-trust-policy-initial.json
+Orchestration
 
-├── docs/
+Apache Airflow (Docker)
 
-│   ├── architecture.png
+Schedules and controls the daily pipeline: Load → Transform → Enrich → AI Mart
 
-│   └── Zomato_Data_Model.jpg
+Pipeline Flow
 
-├── snowflake/
+Source
+   ↓
+Amazon S3
+   ↓
+Snowflake RAW        → Bronze
+   ↓
+dbt STAGING          → Silver
+   ↓
+dbt MARTS            → Gold
+   ↓
+AI Layer
+   ↑
+Airflow orchestrates the entire workflow
 
-│   ├── 01_setup.sql
+2.2 Data Lake and Raw Data Preservation
 
-│   ├── 02_storage_integration.sql
+Core concept
+A data lake stores source data in a raw or near-raw form before analytical transformation.
 
-│   ├── 03_stage_and_formats.sql
+Applied here
+Amazon S3 is the raw data lake.
 
-│   ├── 04_raw_tables.sql
+s3://<BUCKET>/raw/
+├── restaurants/
+├── users/
+├── food/
+├── menu/
+├── orders/
+├── order_items/
+└── reviews/
 
-│   └── 05_copy_into.sql
+Why it matters
+Keeping the raw layer separate provides a source for reprocessing when downstream transformation logic changes.
 
-├── zomato/
+2.3 ELT and Warehouse Loading
 
-│   ├── README.md
+Core concept
+ELT means Extract → Load → Transform. Data is loaded into the analytical platform before transformation.
 
-│   ├── analyses/
+Applied here
 
-│   ├── dbt_project.yml
+CSV
+ ↓
+S3
+ ↓
+Snowflake RAW
+ ↓
+dbt transformations
+ ↓
+STAGING / MARTS
 
-│   ├── macros/
+Snowflake loading uses:
 
-│   ├── models/
+S3
+ ↓
+Storage Integration
+ ↓
+External Stage
+ ↓
+File Format
+ ↓
+COPY INTO
+ ↓
+RAW Tables
 
-│   ├── snapshots/
+Why it matters
+Snowflake performs the analytical storage/compute work while dbt manages SQL transformations inside the warehouse.
 
-│   └── tests/
+2.4 Medallion Architecture
 
-├── .gitignore
+Core concept
+Medallion architecture separates data by increasing levels of refinement.
 
-├── README.md
+Bronze → Silver → Gold
 
-├── LICENSE
+Applied here
 
-└── .venv/
+RAW       → Bronze → source-aligned data
+STAGING   → Silver → cleaned / standardized data
+MARTS     → Gold   → business-ready data
+AI        → AI     → enriched / AI-facing workloads
 
-```
+Why it matters
+Each layer has a clear responsibility and prevents business logic from being mixed with raw ingestion logic.
 
-> The raw data files are intentionally not committed to GitHub because they are too large. Download them from the Drive link above and place them in your local raw-data location before running the pipeline.
+2.5 Data Quality and Cleaning
 
----
+Core concept
+Analytical results are only as reliable as the data used to produce them.
 
-## 1. End-to-end pipeline flow
+Applied here
+dbt staging models clean and standardize source data through:
 
-The project follows a clear production-style data pipeline from raw files to trusted analytics and AI-driven business insight.
+type casting
 
-![High-Level Pipeline](docs/high_level_pipeline.png)
+null handling
 
-### Flow in one sequence
+naming normalization
 
-1. Source datasets are collected as CSVs for restaurants, users, food, menu, orders, order items, and reviews.
+deduplication
 
-2. The files are landed in Amazon S3 as raw data in a lake folder structure such as `s3://<BUCKET>/raw/<table>/`.
+column mapping
 
-3. Snowflake reads the raw files through a storage integration and loads them into the RAW schema using COPY INTO.
+business standardization
 
-4. dbt transforms the data in the staging and mart layers: cleaning, typing, deduplicating, standardizing, and building fact and dimension models.
+Example:
 
-5. Apache Airflow orchestrates the end-to-end process in one DAG so the load, dbt transformation, and AI enrichment run in a controlled sequence.
+RAW
+rating = "4.5"
+city = " Mumbai "
 
-6. The AI layer enriches review text, enables RAG on reviews, and supports natural-language querying with text-to-SQL across the warehouse.
+       ↓
 
-This pipeline turns raw operational records into trusted, business-ready analytics and actionable insights.
+STAGING
+rating = 4.5
+city = "Mumbai"
 
-### Business questions this pipeline answers
+Important quality dimensions for this project include:
 
-- Which cities generate the most revenue?
+Dimension
 
-- Which restaurants perform best by rating and delivery time?
+Example
 
-- What are the top delivery issues reported by customers?
+Completeness
 
-- Which food items or cuisines are most popular?
+Missing restaurant_id
 
-- How can AI help interpret sentiment and reveal insight from reviews?
+Uniqueness
 
----
+Duplicate order_id
 
-## 2. Data engineering concepts demonstrated
+Validity
 
-This project applies the core ideas behind a modern data platform, not just a collection of tools.
+Rating outside expected range
 
-- Batch processing: source data is loaded in scheduled batches and processed through a repeating pipeline.
-- Data lake storage: raw files are staged in Amazon S3 before warehouse ingestion.
-- Cloud warehouse loading: Snowflake ingests the raw layer through storage integration and COPY INTO.
-- ELT architecture: data is loaded first and then transformed in the warehouse and dbt layer.
-- Data cleaning and quality: staging models normalize types, handle nulls, and remove duplicates.
-- Medallion design: RAW → STAGING → MARTS gives a clean separation of concerns.
-- Dimensional modeling: fact and dimension logic supports analytical reporting and KPI generation.
-- Workflow orchestration: Airflow controls task ordering and dependency execution.
-- AI enrichment: unstructured reviews are converted into structured attributes.
-- RAG and text-to-SQL: the warehouse is queried using natural language on top of trusted data.
-- Security: IAM roles, Snowflake roles, and environment variables keep credentials outside the repo.
+Consistency
 
-This is what makes the project look like a production-ready data engineering stack rather than a simple script-based exercise.
+Different city representations
 
----
+Referential integrity
+
+Order referencing missing entity
+
+Type validity
+
+Numeric value stored as text
+
+These are the quality concepts considered by the pipeline. Automated validation should only be claimed where the corresponding dbt tests/checks are actually implemented.
+
+2.6 Dimensional Modeling and Star Schema
+
+Core concept
+Dimensional modeling separates measurable business events from descriptive entities.
+
+Applied here
+The MARTS layer uses fact and dimension concepts for analytical reporting.
+
+                 dim_customer
+                      │
+dim_restaurant ── fact_orders ── dim_date
+                      │
+                 dim_location
+
+Typical analytical objects include:
+
+Facts:
+- fact_orders
+- fact_order_items
+
+Dimensions:
+- dim_customer
+- dim_restaurant
+- dim_food
+- dim_location
+- dim_date
+
+Why it matters
+This makes business questions such as revenue, restaurant performance, customer behavior, and food popularity easier to query.
+
+2.7 Fact Table Grain
+
+Core concept
+Grain defines what one row in a fact table represents.
+
+Applied here
+
+fact_orders
+→ one row represents one order
+
+fact_order_items
+→ one row represents one item within an order
+
+Why it matters
+Clearly defining grain prevents incorrect counts and aggregations because one order may contain multiple order items.
+
+2.8 Incremental Processing
+
+Core concept
+Incremental processing updates new or changed data instead of rebuilding the entire dataset.
+
+Existing data
+      +
+New / changed data
+      ↓
+Incremental model
+      ↓
+Updated target
+
+Applied here
+The Gold architecture includes incremental fact processing.
+
+Why it matters
+
+less data processed per run
+
+faster recurring workloads
+
+lower compute requirements
+
+better scalability
+
+The README distinguishes the incremental concept from the full-refresh approach. Claim implementation only for the models that are actually configured as incremental in the repository.
+
+2.9 dbt and Analytics Engineering
+
+Core concept
+dbt applies software-engineering practices to SQL-based analytical transformation.
+
+Applied here
+
+RAW
+ ↓
+STAGING
+ ↓
+MARTS
+ ↓
+AI-related models
+
+dbt provides the transformation layer for:
+
+modular SQL models
+
+model dependencies
+
+testing
+
+documentation
+
+version-controlled transformation logic
+
+incremental models where configured
+
+Where: zomato/models/, macros/, tests/, dbt_project.yml
+
+2.10 Airflow Orchestration
+
+Core concept
+Orchestration coordinates when tasks execute and in what order.
+
+Applied here
+
+reload_raw
+    ↓
+dbt_build_core
+    ↓
+enrich_reviews
+    ↓
+dbt_build_ai
+
+Airflow is responsible for workflow control; it is not the warehouse or transformation engine.
+
+S3       → raw storage
+Snowflake → storage + analytical compute
+dbt      → transformation
+Airflow  → orchestration
+
+Where: airflow/dags/zomato_batch.py
+
+2.11 Reliability and Recovery
+
+Core concept
+A pipeline should handle task failures without corrupting downstream processing.
+
+Conceptually:
+
+Task
+ ↓
+Failure
+ ↓
+Retry / Rerun
+ ↓
+Success
+ ↓
+Continue downstream
+
+Important concepts include:
+
+task dependencies
+
+retries
+
+failure isolation
+
+reruns
+
+backfills
+
+idempotent processing
+
+These concepts are relevant to the Airflow batch design.
+
+2.12 Data Lineage
+
+Core concept
+Data lineage shows where a dataset originated and how it was transformed.
+
+Example:
+
+orders.csv
+    ↓
+S3
+    ↓
+Snowflake RAW
+    ↓
+stg_orders
+    ↓
+fact_orders
+    ↓
+Revenue / KPI Mart
+    ↓
+BI / AI
+
+Why it matters
+Lineage makes analytical results easier to understand, debug, and maintain.
+
+2.13 AI as a Data Transformation Layer
+
+Core concept
+AI can be used as a transformation step that converts unstructured text into structured data.
+
+Applied here
+
+Review Text
+    ↓
+OpenAI
+    ↓
+Structured Attributes
+    ↓
+Snowflake AI Layer
+
+Example:
+
+"The food was amazing but delivery was extremely late."
+
+        ↓
+
+sentiment       = negative
+sentiment_score = ...
+topic           = delivery
+key_issue       = late_delivery
+
+Where: ai/enrich_reviews.py
+
+This demonstrates an important data-engineering pattern:
+
+Unstructured data → AI processing → structured analytical data
+
+2.14 RAG
+
+Core concept
+Retrieval-Augmented Generation combines retrieval of relevant information with LLM generation.
+
+Applied here
+
+Reviews
+   ↓
+Embeddings
+   ↓
+Vector Search
+   ↓
+Relevant Reviews
+   ↓
+LLM
+   ↓
+Answer
+
+Where: ai/rag_chat.py
+
+Why it matters
+The LLM can answer using relevant review information from the project rather than relying only on general model knowledge.
+
+2.15 Text-to-SQL
+
+Core concept
+Text-to-SQL converts natural-language questions into SQL.
+
+Applied here
+
+Business Question
+       ↓
+Schema / Context
+       ↓
+LLM
+       ↓
+SQL
+       ↓
+Snowflake
+       ↓
+Result
+
+Example:
+
+"Which city has the highest revenue?"
+
+becomes an analytical SQL query against the warehouse models.
+
+Where: ai/text_to_sql.py
+
+2.16 AI Grounding and Guardrails
+
+Core concept
+AI output should be constrained and validated before being used as data or executed against a warehouse.
+
+Conceptually:
+
+LLM Output
+    ↓
+Validation / Guardrails
+    ↓
+Approved Output
+    ↓
+Warehouse / Application
+
+Relevant concepts include:
+
+schema grounding
+
+structured output
+
+SQL validation
+
+controlled query execution
+
+error handling
+
+These should be described as implemented only where the repository contains the corresponding validation logic.
+
+2.17 Security and Access Control
+
+Core concept
+Data platforms should use controlled access and keep credentials outside source control.
+
+Applied here
+
+AWS IAM policies are maintained under aws/iam/
+
+Snowflake roles are configured in warehouse setup
+
+credentials are supplied through environment variables
+
+real credentials are not committed to Git
+
+Concepts demonstrated: IAM, RBAC, Least Privilege, Secret Management
+
+2.18 End-to-End Concept Map
+
+SOURCE CSVs
+    │
+    │ Batch Processing
+    ▼
+AMAZON S3
+    │
+    │ Data Lake / Raw Preservation
+    ▼
+SNOWFLAKE RAW
+    │
+    │ Bronze
+    ▼
+DBT STAGING
+    │
+    │ Cleaning / Quality / Standardization
+    │ Silver
+    ▼
+DBT MARTS
+    │
+    │ Star Schema / Facts / Dimensions
+    │ Grain / Incremental Processing
+    │ Gold
+    ▼
+AI LAYER
+    │
+    ├── Review Enrichment
+    │      Unstructured → Structured
+    │
+    ├── RAG
+    │      Retrieval → LLM → Answer
+    │
+    └── Text-to-SQL
+           Natural Language → SQL → Snowflake
+
+Airflow operates as the orchestration/control plane across these stages, controlling scheduling, dependencies, and execution order.
+
+Key takeaways
+
+The project demonstrates a progression from raw data → trusted data → analytical models → AI-enabled analytics.
+
+Store raw data safely before transformation.
+
+Load and transform systematically using S3, Snowflake, and dbt.
+
+Apply data quality and modeling principles before analytics.
+
+Define fact grain and dimensional relationships for reliable metrics.
+
+Use incremental processing where appropriate for scale.
+
+Orchestrate dependencies with Airflow instead of manually running scripts.
+
+Treat AI outputs as structured data that requires validation.
+
+Expose trusted warehouse data through RAG and Text-to-SQL.
+
+Technology vs Data Engineering Responsibility
+
+Technology
+
+Responsibility
+
+Core Concept
+
+CSV
+
+Source
+
+Batch source
+
+Amazon S3
+
+Raw storage
+
+Data Lake
+
+Snowflake
+
+Analytical storage/compute
+
+Cloud Data Warehouse
+
+COPY INTO
+
+Loading
+
+Bulk Ingestion
+
+dbt
+
+Transformation
+
+ELT / Analytics Engineering
+
+RAW
+
+Raw layer
+
+Bronze
+
+STAGING
+
+Clean layer
+
+Silver
+
+MARTS
+
+Business models
+
+Gold
+
+Airflow
+
+Workflow control
+
+Orchestration
+
+OpenAI
+
+Text processing
+
+AI Transformation
+
+Embeddings
+
+Semantic representation
+
+Vector Search
+
+RAG
+
+Context retrieval
+
+Retrieval-Augmented Generation
+
+Text-to-SQL
+
+Natural-language analytics
+
+NL → SQL
+
+Streamlit
+
+User interface
+
+Analytics / AI Consumption
 
 ## 3. Medallion architecture
 
@@ -179,8 +689,11 @@ This is what makes the project look like a production-ready data engineering sta
 The project follows a medallion architecture to keep the data pipeline clean and scalable:
 
 - Raw layer: ingests source files and stores them in a raw landing zone.
+
 - Staging layer: standardizes column names, cleans values, and prepares the data for modeling.
+
 - Mart layer: creates business-ready tables used for analysis and reporting.
+
 - AI layer: enriches review content and answers natural-language business questions.
 
 ---
@@ -407,8 +920,6 @@ Unpause the DAG and trigger it when ready.
 
 The AI layer sits on top of the warehouse and adds intelligence to the analytical data.
 
-
-
 ### 1. Review enrichment
 
 The script [ai/enrich_reviews.py](ai/enrich_reviews.py) sends review text to OpenAI and produces fields like:
@@ -525,7 +1036,7 @@ Potential next improvements include:
 
 - data quality monitoring and alerts
 
-- incremental dbt logic for large datasets
+- further optimization and expansion of incremental dbt processing
 
 - CI/CD for dbt and SQL validation
 
@@ -535,7 +1046,9 @@ Potential next improvements include:
 
 ---
 
-## 13. Final note
+**> Implementation scope: This README separates concepts demonstrated by the project from broader production practices. A concept is described as implemented only where the repository contains the corresponding configuration, model, script, or workflow. Concepts that are architectural considerations rather than completed features are explicitly presented as such.
+
+13. Final note**
 
 This repository is best understood as a modern data platform end-to-end project where the goal is not only to move data but to create a reliable, understandable, and AI-enabled business intelligence system.
 
