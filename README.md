@@ -8,6 +8,23 @@ Zomato dataset → Amazon S3 → Snowflake Raw → dbt staging + marts → Airfl
 
 ![Architecture](docs/architecture.png)
 
+## Project at a glance
+
+This project is designed to show end-to-end ownership of a data platform, not just isolated scripts or notebooks. It covers the full lifecycle of a real business dataset:
+
+- ingest raw operational data from CSV sources
+- land it in cloud storage and warehouse layers
+- apply transformation logic with dbt for trusted analytics
+- automate workflows with Airflow for repeatable execution
+- turn business data into action using AI-powered review analysis and natural-language querying
+
+### Why this matters in a real business context
+
+- helps restaurant chains and food delivery platforms understand performance by city, restaurant, and cuisine
+- identifies customer pain points from reviews and delivery experience data
+- supports faster decision-making using curated marts and KPI-focused models
+- demonstrates how modern AI can sit on top of a reliable warehouse instead of replacing it
+
 ## Why this project
 
 This repository is designed to show how a production-style data pipeline can be built end to end with:
@@ -38,7 +55,11 @@ It is useful for learning modern data engineering patterns and for building a st
 
 ## Project overview
 
-The repository includes a Zomato-style dataset in [data_set](data_set) with seven source CSV files: restaurants, users, food, menu, orders, order items, and customer reviews. The data is staged in S3, copied into Snowflake through a storage integration, transformed with dbt into staging and mart layers, and finally exposed to AI workflows.
+The repository includes a Zomato-style dataset in [data_set](data_set) with seven source CSV files: restaurants, users, food, menu, orders, order items, and customer reviews. The full dataset is also available in the Google Drive folder linked below, which is useful if you want to download the complete raw files locally for ingestion and testing.
+
+### Dataset download
+
+- Google Drive dataset link: https://drive.google.com/drive/folders/1_xcTtGbuZYmWUAdXz8YB4qjainPr6D6V?usp=sharing
 
 ### Included source files
 
@@ -49,6 +70,18 @@ The repository includes a Zomato-style dataset in [data_set](data_set) with seve
 - [data_set/orders.csv](data_set/orders.csv)
 - [data_set/order_items.csv](data_set/order_items.csv)
 - [data_set/reviews.csv](data_set/reviews.csv)
+
+### Data dictionary
+
+| Table | Purpose | Key fields |
+| --- | --- | --- |
+| restaurant | restaurant master data | restaurant id, city, cuisine, rating, address |
+| users | customer profile data | user id, name, age, occupation, income |
+| food | menu item catalog | food id, item name, veg/non-veg |
+| menu | item-to-restaurant mapping and pricing | menu id, restaurant id, food id, price |
+| orders | transactional order header data | order id, user id, city, subtotal, payment method, status |
+| order_items | order line item details | order item id, order id, food id, price, quantity |
+| reviews | customer feedback data | review id, order id, rating, comment, review date |
 
 ### Data flow
 
@@ -145,7 +178,7 @@ AI analytics layer
 └── LICENSE
 ```
 
-> The source CSV dataset is included in the repository under [data_set](data_set), and is used as the base input for the Snowflake + dbt pipeline.
+> The source CSV dataset is included in the repository under [data_set](data_set), and the full raw dataset can also be downloaded from the Google Drive link above for local ingestion and testing.
 
 ---
 
@@ -337,13 +370,33 @@ streamlit run ai/text_to_sql.py
 
 ---
 
-## Example questions supported by the AI layer
+## Presentation/demo storyline
+
+A strong way to present this project in an interview or portfolio review is to frame it as a business problem with a technical solution:
+
+1. The business has raw transaction and review data spread across multiple datasets.
+2. We ingest and standardize that data into a warehouse using cloud storage and Snowflake.
+3. We build clean, reusable data models with dbt so analysts and AI systems can trust the metrics.
+4. We automate the workflow with Airflow so data refreshes are repeatable and production-like.
+5. We add AI to convert customer sentiment into operational insight and natural-language analytics.
+
+### Example business questions supported by the AI layer
 
 - Which cities have the highest GMV?
 - What are the most common delivery complaints?
 - Which restaurants have the highest cancellation rate?
 - What is the average delivery time by city?
 - Show restaurants with the best customer ratings
+- Which cuisines or restaurants have strong sentiment but weak delivery performance?
+
+### Business value summary
+
+This project proves that you can work across the full data stack and think beyond coding:
+
+- data engineering: ingestion, storage, pipeline orchestration
+- analytics engineering: transformation, modeling, testing, KPI design
+- AI engineering: review enrichment, semantic search, text-to-SQL
+- business understanding: operational and customer experience analysis
 
 ---
 
