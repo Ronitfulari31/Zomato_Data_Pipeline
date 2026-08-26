@@ -30,16 +30,6 @@ The dataset lands in an S3 data lake and flows into Snowflake through a storage 
 
 ![High-Level Pipeline](docs/high_level_pipeline.png)
 
-```mermaid
-flowchart LR
-    A[Source CSVs] --> B[Amazon S3 Raw]
-    B --> C[Snowflake RAW]
-    C --> D[dbt STAGING]
-    D --> E[dbt MARTS]
-    E --> F[Airflow DAG]
-    F --> G[AI Layer]
-    G --> H[Business Insights]
-```
 
 This project follows a classic ELT pattern: raw data is loaded into the warehouse first, then transformed and enriched in layers before being used for analytics and AI-driven reporting.
 
