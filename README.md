@@ -28,6 +28,8 @@ The dataset lands in an S3 data lake and flows into Snowflake through a storage 
 
 ### End-to-end pipeline flow
 
+![High-Level Pipeline](docs/high_level_pipeline.png)
+
 ```mermaid
 flowchart LR
     A[Source CSVs] --> B[Amazon S3 Raw]
