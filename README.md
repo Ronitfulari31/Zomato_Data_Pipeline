@@ -379,6 +379,7 @@ Unpause the DAG and trigger it when ready.
 
 The AI layer sits on top of the warehouse and adds intelligence to the analytical data.
 
+
 ### 1. Review enrichment
 
 The script [ai/enrich_reviews.py](ai/enrich_reviews.py) sends review text to OpenAI and produces fields like:
